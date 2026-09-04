@@ -1,0 +1,24 @@
+{
+  "name": "盼盼的工作台",
+  "short_name": "盼盼工作台",
+  "description": "盼盼的日常打卡与记录工作台",
+  "start_url": "./?source=pwa",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fef3e6",
+  "theme_color": "#f0a830",
+  "icons": [
+    {
+      "src": "icon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

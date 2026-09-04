@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta name="theme-color" content="#f0a830">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="每日任务">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon192.png">
+<title>每日任务工作台</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+    background: #fef3e6;
+    color: #5a3a1a;
+    min-height: 100vh;
+  }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+  .app {
+    display: flex;
+    min-height: 100vh;
+    background: #fef3e6;
+    background-image: radial-gradient(#f0c878 1.2px, transparent 1.2px);
+    background-size: 18px 18px;
+  }
+
+  /* 左侧导航 */
+  .sidebar {
+    width: 100px;
+    background: #fef3e6;
+    padding: 20px 0 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .profile {
+    width: 66px; height: 66px; border-radius: 50%;
+    background: #fff; border: 3px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    font-size: 36px;
+  }
+  .profile-name {
+    font-size: 12px; color: #c08020; text-align: center;
+    margin-bottom: 22px; line-height: 1.4; font-weight: 600;
+  }
+  .nav-list {
+    display: flex; flex-direction: column; gap: 16px;
+    width: 100%; align-items: center;
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 5px; cursor: pointer; transition: transform 0.2s;
+  }
+  .nav-item:hover { transform: scale(1.05); }
+  .nav-icon {
+    width: 50px; height: 50px; border-radius: 15px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 25px; background: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .nav-item.active .nav-icon {
+    box-shadow: 0 3px 10px rgba(192,128,32,0.22);
+    outline: 2px solid #f0c878;
+  }
+  .nav-label { font-size: 11px; color: #c08020; font-weight: 500; }
+
+  /* 主区域 */
+  .main {
+    flex: 1; padding: 18px 20px 60px; position: relative;
+    max-width: 760px;
+  }
+  .page-title {
+    text-align: center; font-size: 22px; color: #d08820;
+    font-weight: 700; margin: 6px 0 16px; letter-spacing: 1px;
+  }
+  .date-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 12px; margin-bottom: 16px;
+  }
+  .date-text { font-size: 17px; color: #d08820; font-weight: 600; }
+  .progress-text { font-size: 22px; color: #d08820; font-weight: 700; }
+  .progress-text .total { color: #c89a4a; }
+
+  /* 任务列表 */
+  .task-list { display: flex; flex-direction: column; gap: 10px; }
+  .task {
+    background: #fff; border-radius: 14px; padding: 15px 16px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 2px 8px rgba(208,136,32,0.08);
+    cursor: pointer; transition: all 0.2s;
+    user-select: none;
+  }
+  .task:active { transform: scale(0.985); }
+  .task-emoji {
+    flex: 0 0 42px; width: 42px; height: 42px; border-radius: 12px;
+    background: #fef3e6; display: flex; align-items: center;
+    justify-content: center; font-size: 22px;
+    transition: all 0.2s;
+  }
+  .task-name {
+    flex: 1; min-width: 0;
+    font-size: 16px; color: #5a3a1a; font-weight: 600;
+    line-height: 1.4;
+    transition: all 0.2s;
+  }
+  .task-sub { font-size: 12px; color: #9a7a4a; font-weight: 400; margin-top: 2px; }
+  .task-check {
+    flex: 0 0 30px; width: 26px; height: 26px;
+    border: 2px solid #f0d8a8; border-radius: 50%;
+    transition: all 0.2s; position: relative;
+  }
+  /* 完成状态：划横线 */
+  .task.done .task-name {
+    text-decoration: line-through;
+    text-decoration-color: #d08820;
+    text-decoration-thickness: 2px;
+    color: #c0a060;
+  }
+  .task.done .task-emoji { opacity: 0.4; filter: grayscale(0.5); }
+  .task.done .task-check {
+    background: #f0a830; border-color: #f0a830;
+  }
+  .task.done .task-check::after {
+    content: "✓"; color: #fff; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 15px; font-weight: 700;
+  }
+  .task.done { background: #fffaf0; }
+
+  /* 完成小结 */
+  .done-banner {
+    background: linear-gradient(135deg, #f0a830, #ffc960);
+    border-radius: 14px; padding: 14px; text-align: center;
+    color: #fff; font-size: 15px; font-weight: 700;
+    margin-top: 14px; display: none;
+  }
+  .done-banner.show { display: block; }
+
+  /* 历史回顾 */
+  .history-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 24px 4px 12px;
+  }
+  .history-bar .title {
+    font-size: 14px; color: #d08820; font-weight: 700;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .history-nav { display: flex; align-items: center; gap: 8px; }
+  .history-nav button {
+    background: #fff; border: 1.5px solid #f0d8a8; border-radius: 8px;
+    padding: 5px 12px; font-size: 13px; color: #c08020; font-weight: 600;
+  }
+  .history-nav .cur-date {
+    font-size: 13px; color: #5a3a1a; font-weight: 600; min-width: 88px; text-align: center;
+  }
+  .history-content {
+    background: #fff; border-radius: 14px; padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(208,136,32,0.07);
+    font-size: 14px; color: #5a3a1a; line-height: 1.6;
+  }
+  .history-content.empty { color: #c0a060; text-align: center; line-height: 60px; }
+  .h-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 5px 0; border-bottom: 1px dashed #f0e0c0;
+  }
+  .h-row:last-child { border-bottom: none; }
+  .h-emoji { font-size: 17px; width: 24px; text-align: center; }
+  .h-name { flex: 1; font-size: 14px; }
+  .h-row.did .h-name {
+    text-decoration: line-through; text-decoration-color: #f0a830;
+    color: #c0a060;
+  }
+  .h-state { font-size: 13px; font-weight: 600; }
+  .h-row.did .h-state { color: #f0a830; }
+  .h-row.not .h-state { color: #ccc; }
+  .h-summary { font-size: 12px; color: #9a7a4a; text-align: right; margin-top: 6px; }
+
+  /* 页面切换 */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* 学习文本框 */
+  .textarea-card {
+    background: #fff; border-radius: 16px; padding: 16px;
+    box-shadow: 0 2px 8px rgba(208,136,32,0.08);
+    margin-bottom: 14px;
+  }
+  .textarea-card label {
+    display: block; font-size: 15px; color: #d08820;
+    font-weight: 700; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  textarea {
+    width: 100%; min-height: 110px; border: 1.5px solid #f0d8a8;
+    border-radius: 12px; padding: 12px; font-size: 14px;
+    color: #5a3a1a; background: #fffdf8; resize: vertical;
+    line-height: 1.6; outline: none;
+    transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: #f0a830; }
+  .save-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 10px;
+  }
+  .saved-tip { font-size: 12px; color: #c89a4a; }
+  .btn-save {
+    background: #f0a830; color: #fff; padding: 7px 18px;
+    border-radius: 20px; font-size: 13px; font-weight: 600;
+    box-shadow: 0 2px 6px rgba(240,168,48,0.4);
+    transition: transform 0.15s;
+  }
+  .btn-save:active { transform: scale(0.95); }
+
+  /* 移动端：保持左侧纵向导航 */
+  @media (max-width: 720px) {
+    .sidebar { width: 72px; padding: 14px 0 20px; }
+    .profile { width: 42px; height: 42px; font-size: 22px; margin-bottom: 8px; border-width: 2px; }
+    .profile-name { font-size: 10px; margin-bottom: 16px; line-height: 1.3; }
+    .nav-list { gap: 12px; }
+    .nav-icon { width: 38px; height: 38px; font-size: 19px; border-radius: 11px; }
+    .nav-label { font-size: 10px; }
+    .main { padding: 12px 10px 50px; }
+    .task-name { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 左侧导航 -->
+  <aside class="sidebar">
+    <div class="profile">🐼</div>
+    <div class="profile-name">每日<br>任务</div>
+    <div class="nav-list" id="navList">
+      <div class="nav-item active" data-page="mine">
+        <div class="nav-icon">📋</div>
+        <div class="nav-label">我的任务</div>
+      </div>
+      <div class="nav-item" data-page="kid">
+        <div class="nav-icon">👨‍👩‍👧‍👦</div>
+        <div class="nav-label">孩子的任务</div>
+      </div>
+      <div class="nav-item" data-page="study">
+        <div class="nav-icon">📚</div>
+        <div class="nav-label">我的学习</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <main class="main">
+
+    <!-- ============ 我的任务 ============ -->
+    <section class="page active" id="page-mine">
+      <h1 class="page-title">📋 我的任务</h1>
+      <div class="date-row">
+        <div class="date-text" id="mineDate"></div>
+        <div class="progress-text"><span class="done" id="mineDone">0</span><span class="total" id="mineTotal">/13</span></div>
+      </div>
+      <div class="task-list" id="mineList"></div>
+      <div class="done-banner" id="mineBanner">🎉 太棒了！今日任务全部完成～</div>
+
+      <div class="history-bar">
+        <div class="title">📖 往日回顾</div>
+        <div class="history-nav">
+          <button onclick="shiftHist('mine',-1)">‹ 前一天</button>
+          <span class="cur-date" id="mine_h_date">今天</span>
+          <button onclick="shiftHist('mine',1)">后一天 ›</button>
+        </div>
+      </div>
+      <div class="history-content empty" id="mine_h">点击「前一天」查看历史</div>
+    </section>
+
+    <!-- ============ 孩子的任务 ============ -->
+    <section class="page" id="page-kid">
+      <h1 class="page-title">👨‍👩‍👧‍👦 孩子的任务</h1>
+      <div class="date-row">
+        <div class="date-text" id="kidDate"></div>
+        <div class="progress-text"><span class="done" id="kidDone">0</span><span class="total" id="kidTotal">/3</span></div>
+      </div>
+      <div class="task-list" id="kidList"></div>
+      <div class="done-banner" id="kidBanner">🎉 孩子的任务全部完成～</div>
+
+      <div class="history-bar">
+        <div class="title">📖 往日回顾</div>
+        <div class="history-nav">
+          <button onclick="shiftHist('kid',-1)">‹ 前一天</button>
+          <span class="cur-date" id="kid_h_date">今天</span>
+          <button onclick="shiftHist('kid',1)">后一天 ›</button>
+        </div>
+      </div>
+      <div class="history-content empty" id="kid_h">点击「前一天」查看历史</div>
+    </section>
+
+    <!-- ============ 我的学习 ============ -->
+    <section class="page" id="page-study">
+      <h1 class="page-title">📚 我的学习</h1>
+      <div class="date-row">
+        <div class="date-text" id="studyDate"></div>
+      </div>
+      <div class="textarea-card">
+        <label>📖 今日学习内容</label>
+        <textarea id="studyContentInput" placeholder="今天学了什么？&#10;&#10;可以是：读书、听课、看文章、记的笔记……"></textarea>
+        <div class="save-bar">
+          <span class="saved-tip" id="studyContentTip">自动保存</span>
+          <button class="btn-save" onclick="saveStudy('content')">保存</button>
+        </div>
+      </div>
+      <div class="textarea-card">
+        <label>💡 学习感悟</label>
+        <textarea id="studyFeelInput" placeholder="今天的收获、心得、反思……"></textarea>
+        <div class="save-bar">
+          <span class="saved-tip" id="studyFeelTip">自动保存</span>
+          <button class="btn-save" onclick="saveStudy('feel')">保存</button>
+        </div>
+      </div>
+
+      <div class="history-bar">
+        <div class="title">📖 往日回顾</div>
+        <div class="history-nav">
+          <button onclick="shiftHist('study',-1)">‹ 前一天</button>
+          <span class="cur-date" id="study_h_date">今天</span>
+          <button onclick="shiftHist('study',1)">后一天 ›</button>
+        </div>
+      </div>
+      <div class="history-content empty" id="study_h">点击「前一天」查看历史</div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* ============ 工具函数 ============ */
+const WEEK = ['日','一','二','三','四','五','六'];
+function bjNow(){
+  const now = new Date();
+  const t = now.getTime() + now.getTimezoneOffset() * 60000 + 8 * 3600000;
+  return new Date(t);
+}
+function todayKey(){ const d=bjNow(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function todayStr(){ const d=bjNow(); return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 周${WEEK[d.getDay()]}`; }
+function load(key, def){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function saveRaw(key, val){ localStorage.setItem(key, val); }
+function loadRaw(key){ return localStorage.getItem(key)||''; }
+
+/* ============ 任务定义 ============ */
+const MINE_TASKS = [
+  {name:'吃钙 / 润康', emoji:'💊'},
+  {name:'益生菌', emoji:'🦠'},
+  {name:'六个枣', emoji:'🍒'},
+  {name:'拍八虚', emoji:'👐'},
+  {name:'八段锦', emoji:'🧘‍♀️'},
+  {name:'快走 / 原地踏步半小时', emoji:'🚶‍♀️'},
+  {name:'按摩头皮100次', emoji:'💆‍♀️'},
+  {name:'眼镜喷雾', emoji:'👓'},
+  {name:'倒立十分钟', emoji:'🤸‍♀️', sub:'每晚'},
+  {name:'泡脚15分钟', emoji:'🦶', sub:'每晚'},
+  {name:'晒太阳10分钟', emoji:'☀️'},
+  {name:'维C和身体乳敷到睡前', emoji:'🧴'},
+  {name:'眼保健操', emoji:'👀'}
+];
+const KID_TASKS = [
+  {name:'闺女：早维D，晚DHA', emoji:'👧'},
+  {name:'瑞瑞：早维D，抹鼻子，晚洗鼻子', emoji:'🧒'},
+  {name:'学英语，认字', emoji:'📖', sub:'每晚'}
+];
+
+/* ============ 日期填充 ============ */
+document.getElementById('mineDate').textContent = todayStr();
+document.getElementById('kidDate').textContent = todayStr();
+document.getElementById('studyDate').textContent = todayStr();
+
+/* ============ 页面切换 ============ */
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click', ()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    item.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.getElementById('page-'+item.dataset.page).classList.add('active');
+  });
+});
+
+/* ============ 任务渲染与勾选 ============ */
+function taskKey(group){ return 'task_'+group+'_'+todayKey(); }
+
+function renderTasks(group){
+  const tasks = group==='mine' ? MINE_TASKS : KID_TASKS;
+  const states = load(taskKey(group), Array(tasks.length).fill(false));
+  const list = document.getElementById(group+'List');
+  list.innerHTML = '';
+  tasks.forEach((t,i)=>{
+    const row = document.createElement('div');
+    row.className = 'task'+(states[i]?' done':'');
+    row.innerHTML = `
+      <div class="task-emoji">${t.emoji}</div>
+      <div class="task-name">${t.name}${t.sub?`<div class="task-sub">${t.sub}</div>`:''}</div>
+      <div class="task-check"></div>`;
+    row.addEventListener('click', ()=>{
+      states[i] = !states[i];
+      save(taskKey(group), states);
+      row.classList.toggle('done', states[i]);
+      updateProgress(group, states);
+    });
+    list.appendChild(row);
+  });
+  updateProgress(group, states);
+}
+function updateProgress(group, states){
+  const done = states.filter(Boolean).length;
+  const total = states.length;
+  document.getElementById(group+'Done').textContent = done;
+  document.getElementById(group+'Total').textContent = '/'+total;
+  document.getElementById(group+'Banner').classList.toggle('show', done===total && total>0);
+}
+renderTasks('mine');
+renderTasks('kid');
+
+/* ============ 我的学习 ============ */
+function saveStudy(type){
+  const map = {content:['studyContentInput','studyContentTip'], feel:['studyFeelInput','studyFeelTip']};
+  const [inputId, tipId] = map[type];
+  saveRaw('study_'+type+'_'+todayKey(), document.getElementById(inputId).value);
+  const tip = document.getElementById(tipId);
+  tip.textContent = '已保存 ✓';
+  setTimeout(()=>{ tip.textContent='自动保存'; }, 1500);
+}
+[['content','studyContentInput'],['feel','studyFeelInput']].forEach(([type,id])=>{
+  const el = document.getElementById(id);
+  el.value = loadRaw('study_'+type+'_'+todayKey());
+  el.addEventListener('input', ()=>{ saveRaw('study_'+type+'_'+todayKey(), el.value); });
+});
+
+/* ============ 往日回顾 ============ */
+const histOffsets = { mine:0, kid:0, study:0 };
+function dateOffStr(off){
+  const d=bjNow(); d.setDate(d.getDate()+off);
+  return `${d.getMonth()+1}月${d.getDate()}日 周${WEEK[d.getDay()]}`;
+}
+function dateOffKey(off){
+  const d=bjNow(); d.setDate(d.getDate()+off);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function shiftHist(group, delta){
+  histOffsets[group] += delta;
+  if(histOffsets[group] > 0) histOffsets[group] = 0; // 不能看未来
+  renderHist(group);
+}
+function renderHist(group){
+  const off = histOffsets[group];
+  const dk = dateOffKey(off);
+  const dstr = off===0 ? '今天' : dateOffStr(off);
+  document.getElementById(group+'_h_date').textContent = dstr;
+  const el = document.getElementById(group+'_h');
+
+  // 我的学习：显示学习内容 + 学习感悟
+  if(group==='study'){
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    const content = loadRaw('study_content_'+dk);
+    const feel = loadRaw('study_feel_'+dk);
+    if(!content && !feel){
+      el.innerHTML = `<div style="text-align:center;color:#c0a060;line-height:50px">${dstr} 没有记录</div>`;
+      el.classList.add('empty');
+      return;
+    }
+    let html = '';
+    if(content) html += `<div style="font-weight:700;color:#d08820;margin-bottom:4px">📖 学习内容</div><div>${esc(content)}</div>`;
+    if(feel) html += `${content?'<div style="height:10px"></div>':''}<div style="font-weight:700;color:#d08820;margin-bottom:4px">💡 学习感悟</div><div>${esc(feel)}</div>`;
+    el.innerHTML = html;
+    el.classList.remove('empty');
+    return;
+  }
+
+  const tasks = group==='mine' ? MINE_TASKS : KID_TASKS;
+  const states = load('task_'+group+'_'+dk, null);
+  if(!states){
+    el.innerHTML = `<div style="text-align:center;color:#c0a060;line-height:50px">${dstr} 没有记录</div>`;
+    el.classList.add('empty');
+    return;
+  }
+  const done = states.filter(Boolean).length;
+  el.innerHTML = tasks.map((t,i)=>`
+    <div class="h-row ${states[i]?'did':'not'}">
+      <span class="h-emoji">${t.emoji}</span>
+      <span class="h-name">${t.name}</span>
+      <span class="h-state">${states[i]?'✓':'○'}</span>
+    </div>`).join('') +
+    `<div class="h-summary">完成 ${done}/${states.length}</div>`;
+  el.classList.remove('empty');
+}
+</script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
